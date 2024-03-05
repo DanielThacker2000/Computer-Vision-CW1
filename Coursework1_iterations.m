@@ -20,19 +20,17 @@
 FEATURE = 'colour histogram';
 
 %Set extraction parameters for colour histogram
-num_bins = [5,10,15];
-normalize = true;
+num_bins = [10,15];
+normalize = false;
 %colour_space = "RGB";
 %colour_space = "Greyscale";
 %colour_space = "LAB";
-colour_spaces = ["RGB", "Greyscale"];
+colour_spaces = ["RGB"];
 
 %Set parameters for knn classifier
 CLASSIFIER = 'nearest neighbor';
-k_numbers = [5,10, 15];
+k_numbers = [20];
 
-CHANGE_NUMBER = 2;
-repeat_number = 1;
 accuracies = zeros(numel(colour_spaces), numel(k_numbers), numel(num_bins));
 %%
 %Path to data
@@ -99,8 +97,8 @@ for col_space = 1:numel(colour_spaces)
                 case 'colour histogram'
                     %You should allow get_colour_histograms to take parameters e.g.
                     %quantisation, colour space etc.
-                    % train_image_feats = get_colour_histograms(train_image_paths, num_bins, normalize, colour_space);
-                    % test_image_feats  = get_colour_histograms(test_image_paths, num_bins, normalize, colour_space);
+                    % train_image_feats = get_colour_histograms(train_image_paths, num_bins(num_bin), normalize, colour_spaces(col_space));
+                    % test_image_feats  = get_colour_histograms(test_image_paths, num_bins(num_bin), normalize, colour_spaces(col_space));
                     train_image_feats = my_colour_indexing(train_image_paths, num_bins(num_bin), normalize, colour_spaces(col_space));
                     test_image_feats  = my_colour_indexing(test_image_paths, num_bins(num_bin), normalize, colour_spaces(col_space));
             end
@@ -135,8 +133,7 @@ for col_space = 1:numel(colour_spaces)
                 % predicted_categories is an M x 1 cell array, where each entry is a string
                 %  indicating the predicted category for each test image.
                 % Useful functions: pdist2 (Matlab) and vl_alldist2 (from vlFeat toolbox)
-                % predicted_categories = nearest_neighbor_classify(train_image_feats, train_labels, test_image_feats);
-                %predicted_categories = nearest_neighbor_classify_mine(train_image_feats, train_labels, test_image_feats, k_values);
+                %predicted_categories = nearest_neighbor_classify(train_image_feats, train_labels, test_image_feats);
                 predicted_categories = my_knn_classifier(train_image_feats, train_labels, test_image_feats, k_numbers(k_number));
             end
             
@@ -157,6 +154,9 @@ for col_space = 1:numel(colour_spaces)
                                     abbr_categories, ...
                                     predicted_categories);
             accuracies(col_space, k_number, num_bin) = accuracy;
+            disp(col_space);
+            disp("K_number = ", k_number);
+            disp("bin_number = ", num_bin);
         end
     end
 end
