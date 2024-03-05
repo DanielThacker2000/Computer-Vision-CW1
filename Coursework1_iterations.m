@@ -154,9 +154,6 @@ for col_space = 1:numel(colour_spaces)
                                     abbr_categories, ...
                                     predicted_categories);
             accuracies(col_space, k_number, num_bin) = accuracy;
-            disp(col_space);
-            disp("K_number = ", k_number);
-            disp("bin_number = ", num_bin);
         end
     end
 end
