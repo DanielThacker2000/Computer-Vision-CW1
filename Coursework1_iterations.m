@@ -25,11 +25,11 @@ normalize = false;
 %colour_space = "RGB";
 %colour_space = "Greyscale";
 %colour_space = "LAB";
-colour_spaces = ["RGB"];
+colour_spaces = ["RGB", "LAB"];
 
 %Set parameters for knn classifier
 CLASSIFIER = 'nearest neighbor';
-k_numbers = [20];
+k_numbers = [15, 20];
 
 accuracies = zeros(numel(colour_spaces), numel(k_numbers), numel(num_bins));
 %%
