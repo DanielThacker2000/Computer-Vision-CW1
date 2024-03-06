@@ -7,26 +7,40 @@
 %Stretch out so it has 
 %data_path = 'data/data/train/bedroom/sun_aaajwnfblludyasb.jpg';
 
-%moose = tiny_image(data_path);
-%image_test = imread(data_path);
-%img_resized = imresize(image_test, [16, 16]);
-
-function feature_matrix = my_tiny_image(image_paths)
+function feature_matrix = my_tiny_image(image_paths, normalise, col_space)
     num_images = numel(image_paths);
-
-    feature_matrix = zeros(num_images, 16*16*3); % Initialize feature matrix
+    %If greyscale, change feature matrix size
+    if col_space == "Greyscale" 
+        feature_matrix = zeros(num_images, 16*16);
+    else
+        feature_matrix = zeros(num_images, 16*16*3); % Initialize feature matrix
+    end
     for i = 1:num_images
         % Read the image
         img = imread(image_paths{i});
-        
+
+        if col_space == "Greyscale"
+            img = rgb2gray(img);
+        else
+            % Convert image to specified color space
+            if col_space == "HSV"
+                img = rgb2hsv(img);
+            elseif col_space =="LAB"
+                img = rgb2lab(img);
+            end
+        end
+
         % Resize the image to 16x16
         img_resized = imresize(img, [16, 16],'bilinear');
     
         % Convert the resized image to a single long 1D vector
         feature_vector = double(reshape(img_resized, 1, []));
-        % Normalize the feature vector
-        feature_vector = feature_vector - mean(feature_vector); % Subtract mean
-        feature_vector = feature_vector / norm(feature_vector); % Normalize to unit length
+        %Normalise the vectors if chosen
+        if normalise
+            % Normalize the feature vector
+            feature_vector = feature_vector - mean(feature_vector); % Subtract mean
+            feature_vector = feature_vector / norm(feature_vector); % Normalize to unit length
+        end
         % Assign the normalized feature vector to the feature matrix
         feature_matrix(i, :) = feature_vector;
     end

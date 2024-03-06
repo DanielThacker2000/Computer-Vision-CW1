@@ -20,16 +20,19 @@
 FEATURE = 'colour histogram';
 
 %Set extraction parameters for colour histogram
-num_bins = [10,15];
-normalize = false;
+num_bins = [5];
+normalize = true;
 %colour_space = "RGB";
 %colour_space = "Greyscale";
 %colour_space = "LAB";
-colour_spaces = ["RGB", "LAB"];
+%colour_space = "HSV";
+colour_spaces = ["RGB", "LAB","HSV","Greyscale"];
 
 %Set parameters for knn classifier
 CLASSIFIER = 'nearest neighbor';
-k_numbers = [15, 20];
+%distance_metric = "chebyshev";
+distance_metric = "euclidian";
+k_numbers = [5,11,15,21,1];
 
 accuracies = zeros(numel(colour_spaces), numel(k_numbers), numel(num_bins));
 %%
@@ -92,8 +95,8 @@ for col_space = 1:numel(colour_spaces)
                     % unit length (normalizing them) will increase performance modestly.
                     
                     %train_image_feats = get_tiny_images(train_image_paths);
-                    train_image_feats_mine = my_tiny_image(train_image_paths);
-                    test_image_feats  = my_tiny_image(test_image_paths);
+                    train_image_feats = my_tiny_image(train_image_paths, normalize, colour_spaces(col_space));
+                    test_image_feats  = my_tiny_image(test_image_paths, normalize, colour_spaces(col_space));
                 case 'colour histogram'
                     %You should allow get_colour_histograms to take parameters e.g.
                     %quantisation, colour space etc.
@@ -134,7 +137,7 @@ for col_space = 1:numel(colour_spaces)
                 %  indicating the predicted category for each test image.
                 % Useful functions: pdist2 (Matlab) and vl_alldist2 (from vlFeat toolbox)
                 %predicted_categories = nearest_neighbor_classify(train_image_feats, train_labels, test_image_feats);
-                predicted_categories = my_knn_classifier(train_image_feats, train_labels, test_image_feats, k_numbers(k_number));
+                predicted_categories = my_knn_classifier(train_image_feats, train_labels, test_image_feats, k_numbers(k_number), distance_metric);
             end
             
             
@@ -154,6 +157,10 @@ for col_space = 1:numel(colour_spaces)
                                     abbr_categories, ...
                                     predicted_categories);
             accuracies(col_space, k_number, num_bin) = accuracy;
+            disp(colour_spaces(col_space));
+            fprintf('%d = k_numbers \n',k_numbers(k_number));
+            fprintf('%d = num_bins \n',num_bins(num_bin));
+
         end
     end
 end
