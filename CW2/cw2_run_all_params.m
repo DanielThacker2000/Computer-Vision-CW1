@@ -1,7 +1,7 @@
 
 function cw2_run_all_params(k_numbers, colour_spaces, vocab_sizes, is_weighteds, is_tfidfs, lambdas, distance_metrics, features, classifiers, disp_cf,output_name)
 
-    num_train_per_cat = 1; 
+    num_train_per_cat = 100; 
     data_path = 'data/data';
     categories = {'Kitchen', 'Store', 'Bedroom', 'LivingRoom', 'House', ...
            'Industrial', 'Stadium', 'Underwater', 'TallBuilding', 'Street', ...
@@ -69,7 +69,6 @@ function cw2_run_all_params(k_numbers, colour_spaces, vocab_sizes, is_weighteds,
               test_image_feats = spatial_pyramid(test_image_paths, 3, 5, is_tfidfs(is_tfidf), vocab_sizes(vocab_size), is_weighteds(is_weighted),vocab_file_name);
               disp("done test feats")
     
-              %save("image_feats_spatial.mat", "train_image_feats", "test_image_feats"
           case 'spatial_pyramids_col'
               train_image_feats = spatial_pyramid_col(train_image_paths, 3, 5, is_tfidfs(is_tfidf), vocab_sizes(vocab_size), is_weighteds(is_weighted),vocab_file_name_col);
               disp("done training")
@@ -79,8 +78,7 @@ function cw2_run_all_params(k_numbers, colour_spaces, vocab_sizes, is_weighteds,
     
     end
     %% Step 2: Classify each test image by training and using the appropriate classifier
-    
-    
+        
     for lambda = 1:numel(lambdas)
         for distance_metric = 1:numel(distance_metrics)
             for k_number = 1:numel(k_numbers)
@@ -100,8 +98,7 @@ function cw2_run_all_params(k_numbers, colour_spaces, vocab_sizes, is_weighteds,
         column = find(strcmp(predicted_categories{i}, categories));
         confusion_matrix(row, column) = confusion_matrix(row, column) + 1;
     end
-    %if the number of training examples and test cases are not equal, this
-    %statement will be invalid.
+
     num_test_per_cat = length(test_labels) / 15;
     confusion_matrix = confusion_matrix ./ num_test_per_cat;   
     accuracy = mean(diag(confusion_matrix));
