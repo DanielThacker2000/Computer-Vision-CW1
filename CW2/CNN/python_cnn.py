@@ -4,8 +4,10 @@ Created on Wed Apr 24 14:42:47 2024
 
 @author: yad23rju
 """
-from keras.wrappers.scikit_learn import KerasClassifier
+#from keras.wrappers.scikit_learn import KerasClassifier #THIS MIGHT CAUSE AN ISSUE
+from scikeras.wrappers import KerasClassifier
 from sklearn.model_selection import GridSearchCV
+from keras import regularizers
 import csv
 from keras.models import load_model
 from PIL import Image
@@ -98,28 +100,44 @@ def get_image_paths(data_path, categories, num_train_per_cat):
 
 
 
-def my_cnn(num_epochs=30, learning_rate=0.0001, batch_size=32):
+def my_cnn(num_epochs=30, learning_rate=0.0001, batch_size=32, dropout_rate=0.2, weight_decay=0.001):
     # Define CNN architecture
     num_classes = 15
     feature_length = 64
     
     inputs = layers.Input(shape=(299, 299, 3))
-    x = layers.Conv2D(32, (3, 3), strides=2, padding='same', activation='relu')(inputs)
-    x = layers.Conv2D(32, (3, 3), padding='same', activation='relu')(x)
+    x = layers.Conv2D(32, (3, 3), strides=2, padding='same', activation='relu',
+                      kernel_regularizer=regularizers.l2(weight_decay))(inputs)
+    x = layers.Conv2D(32, (3, 3), padding='same', activation='relu',
+                      kernel_regularizer=regularizers.l2(weight_decay))(x)
     x = layers.MaxPooling2D((2, 2), strides=2)(x)
-    x = layers.Conv2D(64, (3, 3), padding='same', activation='relu')(x)
-    x = layers.Conv2D(80, (3, 3), activation='relu')(x)
+    #skip_connection = x   #TRY SKIP CONNECTION
+    x = layers.Conv2D(64, (3, 3), padding='same', activation='relu',
+                      kernel_regularizer=regularizers.l2(weight_decay))(x)
+    x = layers.Conv2D(80, (3, 3), activation='relu',
+                      kernel_regularizer=regularizers.l2(weight_decay))(x)
     # Custom made inception layer
-    branch1 = layers.Conv2D(64, (1, 1), padding='same', activation='relu')(x)
-    branch2 = layers.Conv2D(96, (1, 1), padding='same', activation='relu')(x)
-    branch2 = layers.Conv2D(128, (3, 3), padding='same', activation='relu')(branch2)
-    branch3 = layers.Conv2D(16, (1, 1), padding='same', activation='relu')(x)
-    branch3 = layers.Conv2D(32, (5, 5), padding='same', activation='relu')(branch3)
+    branch1 = layers.Conv2D(64, (1, 1), padding='same', activation='relu',
+                            kernel_regularizer=regularizers.l2(weight_decay))(x)
+    branch2 = layers.Conv2D(96, (1, 1), padding='same', activation='relu',
+                            kernel_regularizer=regularizers.l2(weight_decay))(x)
+    branch2 = layers.Conv2D(128, (3, 3), padding='same', activation='relu',
+                            kernel_regularizer=regularizers.l2(weight_decay))(branch2)
+    branch3 = layers.Conv2D(16, (1, 1), padding='same', activation='relu',
+                            kernel_regularizer=regularizers.l2(weight_decay))(x)
+    branch3 = layers.Conv2D(32, (5, 5), padding='same', activation='relu',
+                            kernel_regularizer=regularizers.l2(weight_decay))(branch3)
     x = layers.Concatenate()([branch1, branch2, branch3])
     x = layers.MaxPooling2D((8, 8), strides=1)(x)
+    #x = layers.add([x, skip_connection])
     x = layers.Flatten()(x)
-    x = layers.Dense(256, activation='relu')(x)
-    x = layers.Dense(feature_length, activation='relu')(x)
+    x = layers.Dropout(dropout_rate)(x)
+    x = layers.Dense(256, activation='relu',
+                     kernel_regularizer=regularizers.l2(weight_decay))(x)
+    x = layers.Dropout(dropout_rate)(x)
+    x = layers.Dense(feature_length, activation='relu',
+                     kernel_regularizer=regularizers.l2(weight_decay))(x)
+    x = layers.Dropout(dropout_rate)(x)
     outputs = layers.Dense(num_classes, activation='softmax')(x)
 
     model = models.Model(inputs=inputs, outputs=outputs)
@@ -129,6 +147,7 @@ def my_cnn(num_epochs=30, learning_rate=0.0001, batch_size=32):
                   metrics=['accuracy'])
     # Define early stopping callback
     early_stopping = callbacks.EarlyStopping(monitor='loss', patience=5, verbose=1, restore_best_weights=True)
+    
     
     # Train CNN
     #history = model.fit(x_train,labels, epochs=num_epochs, verbose=1)
@@ -447,9 +466,9 @@ categories = ['Kitchen', 'Store', 'Bedroom', 'LivingRoom', 'House',
 num_train_per_cat = 100
 train_image_paths, test_image_paths, train_labels, test_labels = get_image_paths(data_path, categories, num_train_per_cat)
 #%%
-horiz_flip = True
-vert_flip = True
-gauss_noise = True
+horiz_flip = False
+vert_flip = False
+gauss_noise = False
 print("Loading images")
 #CURRENTLY TRAINING THE CNN WITH PERTURBED IMAGES THEN GIVEN THE UNPERTURBED TEST SET
 x_train = load_and_preprocess_images(train_image_paths, (299,299), horiz_flip, vert_flip, gauss_noise)
@@ -460,18 +479,24 @@ plt.axis('off')  # Hide axes
 plt.show()
 #%%
 encoded_train_labels = encode_labels(train_labels)
-encoded_train_labels_1 = to_categorical(encoded_train_labels, 15)
+#encoded_train_labels_1 = to_categorical(encoded_train_labels, 15)
 encoded_test_labels = encode_labels(test_labels)
-encoded_test_labels_1 = to_categorical(encoded_test_labels, 15)
+#encoded_test_labels_1 = to_categorical(encoded_test_labels, 15)
 #test_labels = to_categorical(test_labels, 15)
 #%%
 train_model = True
 eval_model_on_noise = True
-epochs = 30
+grid_search = False
+epochs = 20
 learning_rate = 0.0001
 batch_size = 32
 #%%
 if train_model:
+    model = my_cnn()
+    history = model.fit(x_train,encoded_train_labels, epochs=epochs, verbose=1)
+    accuracy, cm,predicted_labels = evaluate_cnn(model, x_test, encoded_test_labels, history)
+
+elif grid_search:
     keras_model = KerasClassifier(build_fn=my_cnn, verbose=1)
 
     # Define the grid search parameters
@@ -509,7 +534,7 @@ v_flips = [0, 1]
 gauss_noises = [0, 1]
 #Creat csv file and save parameters based on iterations
 if eval_model_on_noise:
-    with open('accuracy_results_TEST.csv', mode='w', newline='') as file:
+    with open('accuracy_results_no_noise_weightdecay.csv', mode='w', newline='') as file:
         writer = csv.writer(file)
         
         writer.writerow(['Horizontal Flip', 'Vertical Flip', 'Gaussian Noise', 'Accuracy'])
